@@ -1,54 +1,38 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mc-pod-1
+  name: mc-pod
   namespace: mc-namespace
 spec:
   containers:
-  - name: mc-pod-1
-    image: nginx:1-alpine
-    env:
-      - name: NODE_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: spec.nodeName
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: myapp
-  namespace: mc-namespace
-  labels:
-    app: myapp
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: myapp
-  template:
-    metadata:
-      labels:
-        app: myapp
-    spec:
-      containers:
-        - name: mc-pod-2
-          image: busybox:1
-          command: ['sh', '-c', 'while true; do echo `date` >> /var/log/shared/date.txt; sleep 1; done']
-          volumeMounts:
-            - name: shared
-              mountPath: /var/log/shared
-      initContainers:
-        - name: mc-pod-3
-          image: busybox:1
-          # Setting restartPolicy: Always makes this a sidecar container.
-          restartPolicy: Always
-          command: ['sh', '-c', 'tail -F /var/log/shared/date.txt']
-          volumeMounts:
-            - name: shared
-              mountPath: /var/log/shared
-      volumes:
-        - name: shared
-          emptyDir: {}
+    - name: mc-pod-1
+      image: nginx:1-alpine
+      env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+    - name: mc-pod-2
+      image: busybox:1
+      volumeMounts:
+        - name: shared-volume
+          mountPath: /var/log/shared
+      command:
+        - "sh"
+        - "-c"
+        - "while true; do date >> /var/log/shared/date.log; sleep 1; done"
+    - name: mc-pod-3
+      image: busybox:1
+      command:
+        - "sh"
+        - "-c"
+        - "tail -f /var/log/shared/date.log"
+      volumeMounts:
+        - name: shared-volume
+          mountPath: /var/log/shared
+  volumes:
+    - name: shared-volume
+      emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
